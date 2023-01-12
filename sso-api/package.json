@@ -1,0 +1,16 @@
+{
+  "name": "sso-api",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "Huyen Pham",
+  "license": "MIT",
+  "scripts": {
+    "start": "yarn tsc && node dist/index.js"
+  },
+  "devDependencies": {
+    "typescript": "^4.9.4"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  }
+}
