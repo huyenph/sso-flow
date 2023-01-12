@@ -59,7 +59,6 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
 
   authModule.checkCredential(connection, username, password, () => {
     const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
-    console.log(`encrypt: ${code}`);
     res.redirect(302, redirectUrl + `?authorization_code=${code}`);
   });
 });
@@ -82,6 +81,12 @@ router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
     ) {
       return res.status(400).send({ message: "Access denied" });
     }
+
+    const token = authModule.generateAccessToken(client_id, client_secret);
+    return res.status(200).send({
+      access_token: token,
+      token_type: "Bearer",
+    });
   } else {
     return res.status(400).send({ message: "Invalid request" });
   }

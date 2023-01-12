@@ -1,5 +1,6 @@
 const CryptoJS = require("crypto-js");
 const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
 const generateAuthorizationCode = (clientId: string, redirectUrl: string) => {
   return CryptoJS.AES.encrypt(
@@ -43,7 +44,17 @@ const verifyAuthorizationCode = (
   return false;
 };
 
-const generateAccessToken = () => {};
+const generateAccessToken = (clientId: string, clientSecret: string) => {
+  return jwt.sign(
+    {
+      client_id: clientId,
+      client_secret: clientSecret,
+      issuer: "auth-server",
+      exp: Date.now() + 1800,
+    },
+    "secretKey"
+  );
+};
 
 enum UserRole {
   "Admin",
@@ -99,5 +110,6 @@ module.exports = {
   checkCredential,
   authenticateClient,
   verifyAuthorizationCode,
+  generateAccessToken,
   insertUser,
 };
