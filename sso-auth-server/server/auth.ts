@@ -25,15 +25,22 @@ const verifyAuthorizationCode = (
   if (!authCode) {
     return false;
   }
-  console.log(`decrypt: ${authCode.replace(/\s/g, "+")}`);
-
   const authData = JSON.parse(
     CryptoJS.AES.decrypt(authCode.replace(/\s/g, "+"), "secretKey").toString(
       CryptoJS.enc.Utf8
     )
   );
-  console.log(authData);
-  return true;
+  if (authData) {
+    const { client_id, redirect_url, exp } = authData;
+    if (clientId !== client_id || redirect_url !== redirectUrl) {
+      return false;
+    }
+    if (exp < Date.now()) {
+      return false;
+    }
+    return true;
+  }
+  return false;
 };
 
 const generateAccessToken = () => {};
