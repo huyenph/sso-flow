@@ -3,10 +3,9 @@ const express = require("express");
 const { NextFunction, Request, Response } = require("express");
 const session = require("express-session");
 const mysql = require("mysql2");
-const bcrypt = require("bcrypt");
 const path = require("path");
-const CryptoJS = require("crypto-js");
 const bodyParser = require("body-parser");
+const authModule = require("./auth");
 const app = express();
 const router = express.Router();
 app.use(bodyParser.json());
@@ -30,18 +29,14 @@ const connection = mysql.createConnection({
     password: "rootpass",
     database: "sso_flow",
 });
-router.get("/", (req, res) => {
-    // req.session.accessToken = "accessToken key";
-    console.log(req.session);
+router.get("/oauth", (req, res) => {
     if (req.session.accessToken) {
     }
     else {
-        res.redirect("/auth");
+        res.redirect("/oauth/authorize");
     }
 });
-router.get("/auth", (req, res) => {
-    // req.session.accessToken = "accessToken key";
-    console.log(req.session);
+router.get("/oauth/authorize", (req, res) => {
     if (req.session.accessToken) {
         res.redirect("/");
     }
@@ -49,51 +44,31 @@ router.get("/auth", (req, res) => {
         res.sendFile(path.join(__dirname + "/auth.html"));
     }
 });
-router.post("/signin", (req, res) => {
+router.post("/oauth/signin", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
     const clientId = req.body.client_id;
     const redirectUrl = req.body.redirect_url;
-    connection.execute(`SELECT password FROM Users WHERE username = "${username}"`, (err, results, fields) => {
-        if (results.length > 0) {
-            bcrypt.compare(password, results[0]["password"], (err, result) => {
-                checkCredential(result, clientId, redirectUrl, res);
-            });
-        }
+    authModule.checkCredential(connection, username, password, () => {
+        const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
+        console.log(`encrypt: ${code}`);
+        res.redirect(302, redirectUrl + `?authorization_code=${code}`);
     });
 });
-router.post("/token", (req, res) => {
-    console.log(req.body);
-});
-const checkCredential = (result, clientId, redirectUrl, res) => {
-    if (result) {
-        const code = generateAuthorizationCode(clientId, redirectUrl);
-        console.log(code);
-        res.redirect(redirectUrl + `?authorization_code=${code}`);
+router.post("/oauth/token", (req, res) => {
+    if (req.body) {
+        const { authorization_code, client_id, client_secret, redirect_url } = req.body;
+        if (!authModule.authenticateClient(client_id, client_secret)) {
+            return res.status(400).send({ message: "Invalid client" });
+        }
+        if (!authModule.verifyAuthorizationCode(authorization_code, client_id, redirect_url)) {
+            return res.status(400).send({ message: "Access denied" });
+        }
     }
-};
-const generateAuthorizationCode = (clientId, redirectUrl) => {
-    return CryptoJS.AES.encrypt(JSON.stringify({
-        client_id: clientId,
-        redirect_url: redirectUrl,
-        exp: Date.now() + 600,
-    }), "secretKey").toString();
-};
+    else {
+        return res.status(400).send({ message: "Invalid request" });
+    }
+});
 app.listen(3001, () => {
     console.log("Server listening on PORT 3001");
 });
-// bcrypt.genSalt(10, (err: any, salt: any) => {
-//   bcrypt.hash(password, salt, (err: any, hash: string) => {
-//     connection.execute(
-//       "INSERT INTO Users (userID, username, password, email, role) VALUES (?,?,?,?,?)",
-//       [
-//         "a5860b36-8573-4500-9d0a-d6ee6ff891a7",
-//         "user 4",
-//         hash,
-//         "user4@gmail.com",
-//         "Tier3",
-//       ],
-//       (err: any, results: any, fields: any) => {}
-//     );
-//   });
-// });

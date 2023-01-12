@@ -11,8 +11,7 @@ const Callback = () => {
   const router = useRouter();
 
   useEffect(() => {
-    console.log(router.query);
-    const authCode = router.query;
+    const authCode = router.query["authorization_code"];
     if (authCode) {
       const requestOptions = {
         method: "POST",
@@ -25,7 +24,7 @@ const Callback = () => {
           redirect_url: "http://localhost:3000/callback",
         }),
       };
-      fetch("http://localhost:3001/token", requestOptions).then(
+      fetch("http://localhost:3001/oauth/token", requestOptions).then(
         (res: Response) => {
           console.log(res);
         }

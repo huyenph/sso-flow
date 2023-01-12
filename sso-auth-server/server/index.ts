@@ -2,17 +2,15 @@ const express = require("express");
 const { NextFunction, Request, Response } = require("express");
 const session = require("express-session");
 const mysql = require("mysql2");
-const bcrypt = require("bcrypt");
 const path = require("path");
-const CryptoJS = require("crypto-js");
 const bodyParser = require("body-parser");
+const authModule = require("./auth");
 
 const app = express();
 const router = express.Router();
 
 app.use(bodyParser.json());
 app.use(express.urlencoded());
-
 app.use(
   (_: typeof Request, res: typeof Response, next: typeof NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -21,7 +19,6 @@ app.use(
     next();
   }
 );
-
 app.use(
   session({
     resave: true,
@@ -30,7 +27,6 @@ app.use(
     cookie: { maxAge: 60000, secure: true },
   })
 );
-
 app.use("/", router);
 
 const connection = mysql.createConnection({
@@ -40,18 +36,14 @@ const connection = mysql.createConnection({
   database: "sso_flow",
 });
 
-router.get("/", (req: typeof Request, res: typeof Response) => {
-  // req.session.accessToken = "accessToken key";
-  console.log(req.session);
+router.get("/oauth", (req: typeof Request, res: typeof Response) => {
   if (req.session.accessToken) {
   } else {
-    res.redirect("/auth");
+    res.redirect("/oauth/authorize");
   }
 });
 
-router.get("/authorize", (req: typeof Request, res: typeof Response) => {
-  // req.session.accessToken = "accessToken key";
-  console.log(req.session);
+router.get("/oauth/authorize", (req: typeof Request, res: typeof Response) => {
   if (req.session.accessToken) {
     res.redirect("/");
   } else {
@@ -59,67 +51,42 @@ router.get("/authorize", (req: typeof Request, res: typeof Response) => {
   }
 });
 
-router.post("/signin", (req: typeof Request, res: typeof Response) => {
+router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
   const username = req.body.username;
   const password = req.body.password;
   const clientId = req.body.client_id;
   const redirectUrl = req.body.redirect_url;
 
-  connection.execute(
-    `SELECT password FROM Users WHERE username = "${username}"`,
-    (err: any, results: any, fields: any) => {
-      if (results.length > 0) {
-        bcrypt.compare(
-          password,
-          results[0]["password"],
-          (err: any, result: any) => {
-            if (result) {
-              const code = generateAuthorizationCode(clientId, redirectUrl);
-              res.redirect(redirectUrl + `?authorization_code=${code}`, 302);
-            }
-          }
-        );
-      }
-    }
-  );
+  authModule.checkCredential(connection, username, password, () => {
+    const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
+    console.log(`encrypt: ${code}`);
+    res.redirect(302, redirectUrl + `?authorization_code=${code}`);
+  });
 });
 
-router.post("/token", (req: typeof Request, res: typeof Response) => {
+router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
   if (req.body) {
     const { authorization_code, client_id, client_secret, redirect_url } =
       req.body;
-    // authenticate client
-    // verify authentication code
+
+    if (!authModule.authenticateClient(client_id, client_secret)) {
+      return res.status(400).send({ message: "Invalid client" });
+    }
+
+    if (
+      !authModule.verifyAuthorizationCode(
+        authorization_code,
+        client_id,
+        redirect_url
+      )
+    ) {
+      return res.status(400).send({ message: "Access denied" });
+    }
+  } else {
+    return res.status(400).send({ message: "Invalid request" });
   }
 });
-
-const generateAuthorizationCode = (clientId: string, redirectUrl: string) => {
-  return CryptoJS.AES.encrypt(
-    JSON.stringify({
-      client_id: clientId,
-      redirect_url: redirectUrl,
-      exp: Date.now() + 600,
-    }),
-    "secretKey"
-  ).toString();
-};
 
 app.listen(3001, () => {
   console.log("Server listening on PORT 3001");
 });
-
-// bcrypt.genSalt(10, (err: any, salt: any) => {
-//   bcrypt.hash(password, salt, (err: any, hash: string) => {
-//     connection.execute(
-//       "INSERT INTO Users (userID, username, password, email, role) VALUES (?,?,?,?,?)",
-//       [
-//         "a5860b36-8573-4500-9d0a-d6ee6ff891a7",
-//         "user 4",
-//         hash,
-//         "user4@gmail.com",
-//         "Tier3",
-//       ],
-//       (err: any, results: any, fields: any) => {}
-//     );
-//   });
-// });
