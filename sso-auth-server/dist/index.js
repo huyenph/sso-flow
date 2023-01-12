@@ -1,13 +1,15 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
 const express = require("express");
 const { NextFunction, Request, Response } = require("express");
 const session = require("express-session");
 const mysql = require("mysql2");
 const bcrypt = require("bcrypt");
 const path = require("path");
+const CryptoJS = require("crypto-js");
+const bodyParser = require("body-parser");
 const app = express();
 const router = express.Router();
+app.use(bodyParser.json());
 app.use(express.urlencoded());
 app.use((_, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
@@ -60,10 +62,22 @@ router.post("/signin", (req, res) => {
         }
     });
 });
+router.post("/token", (req, res) => {
+    console.log(req.body);
+});
 const checkCredential = (result, clientId, redirectUrl, res) => {
     if (result) {
-        res.redirect(redirectUrl);
+        const code = generateAuthorizationCode(clientId, redirectUrl);
+        console.log(code);
+        res.redirect(redirectUrl + `?authorization_code=${code}`);
     }
+};
+const generateAuthorizationCode = (clientId, redirectUrl) => {
+    return CryptoJS.AES.encrypt(JSON.stringify({
+        client_id: clientId,
+        redirect_url: redirectUrl,
+        exp: Date.now() + 600,
+    }), "secretKey").toString();
 };
 app.listen(3001, () => {
     console.log("Server listening on PORT 3001");
