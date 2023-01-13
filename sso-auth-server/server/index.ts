@@ -6,8 +6,6 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const authModule = require("./auth");
 
-const sessionUser = <object>{};
-
 const app = express();
 const router = express.Router();
 
@@ -39,9 +37,19 @@ const connection = mysql.createConnection({
 });
 
 router.get("/oauth", (req: typeof Request, res: typeof Response) => {
-  if (req.session.accessToken) {
+  const originUrl = new URL(req.query["redirect_url"]).origin;
+  if (originUrl) {
+    if (!authModule.allowUrl[originUrl]) {
+      return res
+        .status(400)
+        .send({ message: "You are not allow to access SSO server" });
+    }
+    if (req.session.accessToken) {
+    } else {
+      res.redirect("/oauth/authorize");
+    }
   } else {
-    res.redirect("/oauth/authorize");
+    return res.status(400).send({ message: "Invalid client" });
   }
 });
 
@@ -66,8 +74,7 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
     (userType: UserType) => {
       // create global session here
       req.session.user = userType.userId;
-      (sessionUser as any)[userType.userId] = userType.email;
-      console.log(sessionUser);
+      (authModule.sessionUser as any)[userType.userId] = userType.email;
       if (redirectUrl === null) {
         return res.redirect("/");
       }

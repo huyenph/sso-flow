@@ -2,6 +2,20 @@ const CryptoJS = require("crypto-js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
+const sessionUser = <object>{};
+const sessionApp = <object>{};
+const intrmTokenCache = <object>{};
+
+const appName = {
+  "http://localhost:3000": "client_1",
+  "http://localhost:3003": "client_2",
+};
+
+const allowUrl = {
+  "http://localhost:3000": true,
+  "http://localhost:3003": false,
+};
+
 const generateAuthorizationCode = (clientId: string, redirectUrl: string) => {
   return CryptoJS.AES.encrypt(
     JSON.stringify({
@@ -54,14 +68,6 @@ const generateAccessToken = (clientId: string, clientSecret: string) => {
     },
     "secretKey"
   );
-};
-
-const sessionApp = <object>{};
-const intrmTokenCache = <object>{};
-
-const appName = {
-  "http://localhost:3000": "client_1",
-  "http://localhost:3003": "client_2",
 };
 
 const storeAppInCache = (
@@ -145,6 +151,11 @@ const checkCredential = (
 };
 
 module.exports = {
+  sessionUser,
+  sessionApp,
+  intrmTokenCache,
+  appName,
+  allowUrl,
   generateAuthorizationCode,
   checkCredential,
   authenticateClient,
