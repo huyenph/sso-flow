@@ -38,6 +38,26 @@ const generateAccessToken = (clientId, clientSecret) => {
         exp: Date.now() + 1800,
     }, "secretKey");
 };
+const sessionApp = {};
+const intrmTokenCache = {};
+const appName = {
+    "http://localhost:3000": "client_1",
+    "http://localhost:3003": "client_2",
+};
+const storeAppInCache = (redirectUrl, userId, token) => {
+    const originUrl = new URL(redirectUrl).origin;
+    if (sessionApp[userId] === undefined) {
+        sessionApp[userId] = {
+            [appName[originUrl]]: true,
+        };
+    }
+    else {
+        sessionApp[userId][appName[originUrl]] = true;
+    }
+    intrmTokenCache[token] = [userId, appName[originUrl]];
+    console.log(sessionApp);
+    console.log(intrmTokenCache);
+};
 var UserRole;
 (function (UserRole) {
     UserRole[UserRole["Admin"] = 0] = "Admin";
@@ -53,11 +73,17 @@ const insertUser = (userID, username, password, email, role) => {
     });
 };
 const checkCredential = (connection, username, password, callback) => {
-    connection.execute(`SELECT password FROM Users WHERE username = "${username}"`, (err, results, fields) => {
+    connection.execute(`SELECT * FROM Users WHERE username = "${username}"`, (err, results, fields) => {
         if (results.length > 0) {
             bcrypt.compare(password, results[0]["password"], (err, result) => {
                 if (result) {
-                    callback();
+                    const user = {
+                        userId: results[0]["userID"],
+                        username: results[0]["username"],
+                        email: results[0]["email"],
+                        role: results[0]["role"],
+                    };
+                    callback(user);
                 }
             });
         }
@@ -68,6 +94,7 @@ module.exports = {
     checkCredential,
     authenticateClient,
     verifyAuthorizationCode,
+    storeAppInCache,
     generateAccessToken,
     insertUser,
 };

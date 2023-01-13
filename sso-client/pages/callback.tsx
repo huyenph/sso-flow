@@ -27,6 +27,8 @@ const Callback = () => {
       fetch("http://localhost:3001/oauth/token", requestOptions).then(
         (res: Response) => {
           console.log(res);
+          if (res.status === 200) {
+          }
         }
       );
     }

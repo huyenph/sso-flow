@@ -6,6 +6,8 @@ const path = require("path");
 const bodyParser = require("body-parser");
 const authModule = require("./auth");
 
+const sessionUser = <object>{};
+
 const app = express();
 const router = express.Router();
 
@@ -57,10 +59,27 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
   const clientId = req.body.client_id;
   const redirectUrl = req.body.redirect_url;
 
-  authModule.checkCredential(connection, username, password, () => {
-    const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
-    res.redirect(302, redirectUrl + `?authorization_code=${code}`);
-  });
+  authModule.checkCredential(
+    connection,
+    username,
+    password,
+    (userType: UserType) => {
+      // create global session here
+      req.session.user = userType.userId;
+      (sessionUser as any)[userType.userId] = userType.email;
+      console.log(sessionUser);
+      if (redirectUrl === null) {
+        return res.redirect("/");
+      }
+
+      // create authorization token
+      const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
+      authModule.storeAppInCache(redirectUrl, userType.userId, code);
+
+      // redirect to client with an authorization token
+      res.redirect(302, redirectUrl + `?authorization_code=${code}`);
+    }
+  );
 });
 
 router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {

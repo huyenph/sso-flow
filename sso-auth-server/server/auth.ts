@@ -56,12 +56,45 @@ const generateAccessToken = (clientId: string, clientSecret: string) => {
   );
 };
 
+const sessionApp = <object>{};
+const intrmTokenCache = <object>{};
+
+const appName = {
+  "http://localhost:3000": "client_1",
+  "http://localhost:3003": "client_2",
+};
+
+const storeAppInCache = (
+  redirectUrl: string,
+  userId: string,
+  token: string
+) => {
+  const originUrl = new URL(redirectUrl).origin;
+  if ((sessionApp as any)[userId] === undefined) {
+    (sessionApp as any)[userId] = {
+      [(appName as any)[originUrl]]: true,
+    };
+  } else {
+    (sessionApp as any)[userId][(appName as any)[originUrl]] = true;
+  }
+  (intrmTokenCache as any)[token] = [userId, (appName as any)[originUrl]];
+  console.log(sessionApp);
+  console.log(intrmTokenCache);
+};
+
 enum UserRole {
   "Admin",
   "Tier1",
   "Tier2",
   "Tier3",
 }
+
+type UserType = {
+  userId: string;
+  username: string;
+  email: string;
+  role: UserRole;
+};
 
 const insertUser = (
   userID: string,
@@ -85,10 +118,10 @@ const checkCredential = (
   connection: any,
   username: string,
   password: string,
-  callback: () => void
+  callback: (userType: UserType) => void
 ) => {
   connection.execute(
-    `SELECT password FROM Users WHERE username = "${username}"`,
+    `SELECT * FROM Users WHERE username = "${username}"`,
     (err: any, results: any, fields: any) => {
       if (results.length > 0) {
         bcrypt.compare(
@@ -96,7 +129,13 @@ const checkCredential = (
           results[0]["password"],
           (err: any, result: any) => {
             if (result) {
-              callback();
+              const user: UserType = {
+                userId: results[0]["userID"],
+                username: results[0]["username"],
+                email: results[0]["email"],
+                role: results[0]["role"],
+              };
+              callback(user);
             }
           }
         );
@@ -110,6 +149,7 @@ module.exports = {
   checkCredential,
   authenticateClient,
   verifyAuthorizationCode,
+  storeAppInCache,
   generateAccessToken,
   insertUser,
 };

@@ -6,6 +6,7 @@ const mysql = require("mysql2");
 const path = require("path");
 const bodyParser = require("body-parser");
 const authModule = require("./auth");
+const sessionUser = {};
 const app = express();
 const router = express.Router();
 app.use(bodyParser.json());
@@ -49,8 +50,18 @@ router.post("/oauth/signin", (req, res) => {
     const password = req.body.password;
     const clientId = req.body.client_id;
     const redirectUrl = req.body.redirect_url;
-    authModule.checkCredential(connection, username, password, () => {
+    authModule.checkCredential(connection, username, password, (userType) => {
+        // create global session here
+        req.session.user = userType.userId;
+        sessionUser[userType.userId] = userType.email;
+        console.log(sessionUser);
+        if (redirectUrl === null) {
+            return res.redirect("/");
+        }
+        // create authorization token
         const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
+        authModule.storeAppInCache(redirectUrl, userType.userId, code);
+        // redirect to client with an authorization token
         res.redirect(302, redirectUrl + `?authorization_code=${code}`);
     });
 });
