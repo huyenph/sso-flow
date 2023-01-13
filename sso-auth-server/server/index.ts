@@ -15,7 +15,7 @@ app.use(
   (_: typeof Request, res: typeof Response, next: typeof NextFunction) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "*");
     next();
   }
 );
@@ -24,7 +24,7 @@ app.use(
     resave: true,
     saveUninitialized: true,
     secret: "secretkey",
-    cookie: { maxAge: 60000, secure: true },
+    // cookie: { secure: true },
   })
 );
 app.use("/", router);
@@ -44,7 +44,9 @@ router.get("/oauth", (req: typeof Request, res: typeof Response) => {
         .status(400)
         .send({ message: "You are not allow to access SSO server" });
     }
-    if (req.session.accessToken) {
+    console.log(req.session.user);
+    if (req.session.user !== undefined) {
+      console.log(req.session.user);
     } else {
       res.redirect("/oauth/authorize");
     }
@@ -54,11 +56,7 @@ router.get("/oauth", (req: typeof Request, res: typeof Response) => {
 });
 
 router.get("/oauth/authorize", (req: typeof Request, res: typeof Response) => {
-  if (req.session.accessToken) {
-    res.redirect("/");
-  } else {
-    res.sendFile(path.join(__dirname + "/auth.html"));
-  }
+  res.sendFile(path.join(__dirname + "/auth.html"));
 });
 
 router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
@@ -74,6 +72,7 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
     (userType: UserType) => {
       // create global session here
       req.session.user = userType.userId;
+      console.log(req.session);
       (authModule.sessionUser as any)[userType.userId] = userType.email;
       if (redirectUrl === null) {
         return res.redirect("/");
@@ -100,6 +99,7 @@ router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
 
     if (
       !authModule.verifyAuthorizationCode(
+        req.get("Authorization"),
         authorization_code,
         client_id,
         redirect_url

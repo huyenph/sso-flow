@@ -15,7 +15,10 @@ const Callback = () => {
     if (authCode) {
       const requestOptions = {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Bearer l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
+        },
         body: JSON.stringify({
           grant_type: "authorization_code",
           authorization_code: authCode,
@@ -26,8 +29,12 @@ const Callback = () => {
       };
       fetch("http://localhost:3001/oauth/token", requestOptions).then(
         (res: Response) => {
-          console.log(res);
           if (res.status === 200) {
+            // store access token in cookie
+            // res.headers.append('Set-Cookie', res.)
+            const data = res.json().then((j) => {
+              console.log(j);
+            });
           }
         }
       );

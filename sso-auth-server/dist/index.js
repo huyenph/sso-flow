@@ -13,14 +13,14 @@ app.use(express.urlencoded());
 app.use((_, res, next) => {
     res.setHeader("Access-Control-Allow-Origin", "*");
     res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,PATCH");
-    res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+    res.setHeader("Access-Control-Allow-Headers", "*");
     next();
 });
 app.use(session({
     resave: true,
     saveUninitialized: true,
     secret: "secretkey",
-    cookie: { maxAge: 60000, secure: true },
+    // cookie: { secure: true },
 }));
 app.use("/", router);
 const connection = mysql.createConnection({
@@ -37,7 +37,9 @@ router.get("/oauth", (req, res) => {
                 .status(400)
                 .send({ message: "You are not allow to access SSO server" });
         }
-        if (req.session.accessToken) {
+        console.log(req.session.user);
+        if (req.session.user !== undefined) {
+            console.log(req.session.user);
         }
         else {
             res.redirect("/oauth/authorize");
@@ -48,12 +50,7 @@ router.get("/oauth", (req, res) => {
     }
 });
 router.get("/oauth/authorize", (req, res) => {
-    if (req.session.accessToken) {
-        res.redirect("/");
-    }
-    else {
-        res.sendFile(path.join(__dirname + "/auth.html"));
-    }
+    res.sendFile(path.join(__dirname + "/auth.html"));
 });
 router.post("/oauth/signin", (req, res) => {
     const username = req.body.username;
@@ -63,6 +60,7 @@ router.post("/oauth/signin", (req, res) => {
     authModule.checkCredential(connection, username, password, (userType) => {
         // create global session here
         req.session.user = userType.userId;
+        console.log(req.session);
         authModule.sessionUser[userType.userId] = userType.email;
         if (redirectUrl === null) {
             return res.redirect("/");
@@ -80,7 +78,7 @@ router.post("/oauth/token", (req, res) => {
         if (!authModule.authenticateClient(client_id, client_secret)) {
             return res.status(400).send({ message: "Invalid client" });
         }
-        if (!authModule.verifyAuthorizationCode(authorization_code, client_id, redirect_url)) {
+        if (!authModule.verifyAuthorizationCode(req.get("Authorization"), authorization_code, client_id, redirect_url)) {
             return res.status(400).send({ message: "Access denied" });
         }
         const token = authModule.generateAccessToken(client_id, client_secret);

@@ -2,6 +2,8 @@
 const CryptoJS = require("crypto-js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const AUTH_HEADER = "Authorization";
+const BEARER_AUTH = "Bearer";
 const sessionUser = {};
 const sessionApp = {};
 const intrmTokenCache = {};
@@ -13,6 +15,7 @@ const allowUrl = {
     "http://localhost:3000": true,
     "http://localhost:3003": false,
 };
+const appTokenDB = "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL";
 const generateAuthorizationCode = (clientId, redirectUrl) => {
     return CryptoJS.AES.encrypt(JSON.stringify({
         client_id: clientId,
@@ -24,11 +27,18 @@ const authenticateClient = (clientId, clientSecret) => {
     // check credential here
     return true;
 };
-const verifyAuthorizationCode = (authCode, clientId, redirectUrl) => {
+const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) => {
+    console.log(bearerCode.replace("Bearer ", ""));
     if (!authCode) {
         return false;
     }
-    const authData = JSON.parse(CryptoJS.AES.decrypt(authCode.replace(/\s/g, "+"), "secretKey").toString(CryptoJS.enc.Utf8));
+    const ssoCode = authCode.replace(/\s/g, "+");
+    const clientName = intrmTokenCache[ssoCode][1];
+    const globalSessionToken = intrmTokenCache[ssoCode][0];
+    if (sessionApp[globalSessionToken][clientName] !== true) {
+        return false;
+    }
+    const authData = JSON.parse(CryptoJS.AES.decrypt(ssoCode, "secretKey").toString(CryptoJS.enc.Utf8));
     if (authData) {
         const { client_id, redirect_url, exp } = authData;
         if (clientId !== client_id || redirect_url !== redirectUrl) {
@@ -60,9 +70,8 @@ const storeAppInCache = (redirectUrl, userId, token) => {
         sessionApp[userId][appName[originUrl]] = true;
     }
     intrmTokenCache[token] = [userId, appName[originUrl]];
-    console.log(sessionApp);
-    console.log(intrmTokenCache);
 };
+const getAuthHeader = () => { };
 var UserRole;
 (function (UserRole) {
     UserRole[UserRole["Admin"] = 0] = "Admin";

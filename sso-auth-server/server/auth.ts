@@ -4,17 +4,24 @@ const jwt = require("jsonwebtoken");
 
 const sessionUser = <object>{};
 const sessionApp = <object>{};
-const intrmTokenCache = <object>{};
+const intermediateTokenCache = <object>{};
 
-const appName = {
+const originName = {
   "http://localhost:3000": "client_1",
-  "http://localhost:3003": "client_2",
+  "http://localhost:3002": "client_2",
 };
 
-const allowUrl = {
+const alloweOrigin = {
   "http://localhost:3000": true,
-  "http://localhost:3003": false,
+  "http://localhost:3002": false,
 };
+
+const appTokenDB = {
+  client_1: "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
+  client_2: "1g0jJwGmRQhJwvwNOrY4i90kD0m",
+};
+
+const SECRET_KEY = "secretKey";
 
 const generateAuthorizationCode = (clientId: string, redirectUrl: string) => {
   return CryptoJS.AES.encrypt(
@@ -23,7 +30,7 @@ const generateAuthorizationCode = (clientId: string, redirectUrl: string) => {
       redirect_url: redirectUrl,
       exp: Date.now() + 600,
     }),
-    "secretKey"
+    SECRET_KEY
   ).toString();
 };
 
@@ -33,17 +40,29 @@ const authenticateClient = (clientId: string, clientSecret: string) => {
 };
 
 const verifyAuthorizationCode = (
+  bearerCode: string,
   authCode: string,
   clientId: string,
   redirectUrl: string
 ) => {
-  if (!authCode) {
+  const ssoCode = authCode.replace(/\s/g, "+");
+  const clientName = (intermediateTokenCache as any)[ssoCode][1];
+  const globalSessionToken = (intermediateTokenCache as any)[ssoCode][0];
+
+  if (bearerCode.replace("Bearer ", "") !== (appTokenDB as any)[clientName]) {
     return false;
   }
+
+  if (authCode === undefined) {
+    return false;
+  }
+
+  if ((sessionApp as any)[globalSessionToken][clientName] !== true) {
+    return false;
+  }
+
   const authData = JSON.parse(
-    CryptoJS.AES.decrypt(authCode.replace(/\s/g, "+"), "secretKey").toString(
-      CryptoJS.enc.Utf8
-    )
+    CryptoJS.AES.decrypt(ssoCode, SECRET_KEY).toString(CryptoJS.enc.Utf8)
   );
   if (authData) {
     const { client_id, redirect_url, exp } = authData;
@@ -66,7 +85,7 @@ const generateAccessToken = (clientId: string, clientSecret: string) => {
       issuer: "auth-server",
       exp: Date.now() + 1800,
     },
-    "secretKey"
+    SECRET_KEY
   );
 };
 
@@ -78,15 +97,18 @@ const storeAppInCache = (
   const originUrl = new URL(redirectUrl).origin;
   if ((sessionApp as any)[userId] === undefined) {
     (sessionApp as any)[userId] = {
-      [(appName as any)[originUrl]]: true,
+      [(originName as any)[originUrl]]: true,
     };
   } else {
-    (sessionApp as any)[userId][(appName as any)[originUrl]] = true;
+    (sessionApp as any)[userId][(originName as any)[originUrl]] = true;
   }
-  (intrmTokenCache as any)[token] = [userId, (appName as any)[originUrl]];
-  console.log(sessionApp);
-  console.log(intrmTokenCache);
+  (intermediateTokenCache as any)[token] = [
+    userId,
+    (originName as any)[originUrl],
+  ];
 };
+
+const getAuthHeader = () => {};
 
 enum UserRole {
   "Admin",
@@ -153,9 +175,9 @@ const checkCredential = (
 module.exports = {
   sessionUser,
   sessionApp,
-  intrmTokenCache,
-  appName,
-  allowUrl,
+  intermediateTokenCache,
+  originName,
+  alloweOrigin,
   generateAuthorizationCode,
   checkCredential,
   authenticateClient,
