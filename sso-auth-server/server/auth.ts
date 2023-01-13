@@ -4,8 +4,8 @@ const jwt = require("jsonwebtoken");
 const cert = require("./key/index");
 
 const sessionUser = <object>{};
-const sessionApp = <object>{};
-const intermediateTokenCache = <object>{};
+const sessionClient = <object>{};
+var intermediateTokenCache = <object>{};
 
 const originName = {
   "http://localhost:3000": "client_1",
@@ -14,7 +14,7 @@ const originName = {
 
 const alloweOrigin = {
   "http://localhost:3000": true,
-  "http://localhost:3002": false,
+  "http://localhost:3002": true,
 };
 
 const appTokenDB = {
@@ -50,6 +50,9 @@ const verifyAuthorizationCode = (
   const clientName = (intermediateTokenCache as any)[ssoCode][1];
   const globalSessionToken = (intermediateTokenCache as any)[ssoCode][0];
 
+  // console.log(bearerCode);
+  // console.log((appTokenDB as any)[clientName]);
+
   if (bearerCode.replace("Bearer ", "") !== (appTokenDB as any)[clientName]) {
     return false;
   }
@@ -58,7 +61,7 @@ const verifyAuthorizationCode = (
     return false;
   }
 
-  if ((sessionApp as any)[globalSessionToken][clientName] !== true) {
+  if (!(sessionClient as any)[globalSessionToken].includes(clientName)) {
     return false;
   }
 
@@ -103,23 +106,23 @@ const generateAccessToken = (
   );
 };
 
-const storeAppInCache = (
+const storeClientInCache = (
   redirectUrl: string,
   userId: string,
   token: string
 ) => {
-  const originUrl = new URL(redirectUrl).origin;
-  if ((sessionApp as any)[userId] === undefined) {
-    (sessionApp as any)[userId] = {
-      [(originName as any)[originUrl]]: true,
-    };
+  const originUrl: string = new URL(redirectUrl).origin;
+  if ((sessionClient as any)[userId] === undefined) {
+    (sessionClient as any)[userId] = [(originName as any)[originUrl]];
   } else {
-    (sessionApp as any)[userId][(originName as any)[originUrl]] = true;
+    const clients: object[] = [...(sessionClient as any)[userId]];
+    clients.push((originName as any)[originUrl]);
+    (sessionClient as any)[userId] = clients;
   }
-  (intermediateTokenCache as any)[token] = [
-    userId,
-    (originName as any)[originUrl],
-  ];
+  intermediateTokenCache = {
+    ...intermediateTokenCache,
+    [token]: [userId, (originName as any)[originUrl]],
+  };
 };
 
 enum UserRole {
@@ -186,7 +189,7 @@ const checkCredential = (
 
 module.exports = {
   sessionUser,
-  sessionApp,
+  sessionClient,
   intermediateTokenCache,
   originName,
   alloweOrigin,
@@ -194,7 +197,7 @@ module.exports = {
   checkCredential,
   authenticateClient,
   verifyAuthorizationCode,
-  storeAppInCache,
+  storeClientInCache,
   generateAccessToken,
   insertUser,
 };

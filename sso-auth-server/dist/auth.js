@@ -4,15 +4,15 @@ const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const cert = require("./key/index");
 const sessionUser = {};
-const sessionApp = {};
-const intermediateTokenCache = {};
+const sessionClient = {};
+var intermediateTokenCache = {};
 const originName = {
     "http://localhost:3000": "client_1",
     "http://localhost:3002": "client_2",
 };
 const alloweOrigin = {
     "http://localhost:3000": true,
-    "http://localhost:3002": false,
+    "http://localhost:3002": true,
 };
 const appTokenDB = {
     client_1: "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
@@ -34,13 +34,16 @@ const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) =>
     const ssoCode = authCode.replace(/\s/g, "+");
     const clientName = intermediateTokenCache[ssoCode][1];
     const globalSessionToken = intermediateTokenCache[ssoCode][0];
+    // console.log(bearerCode);
+    // console.log((appTokenDB as any)[clientName]);
     if (bearerCode.replace("Bearer ", "") !== appTokenDB[clientName]) {
         return false;
     }
     if (authCode === undefined) {
         return false;
     }
-    if (sessionApp[globalSessionToken][clientName] !== true) {
+    console.log(sessionClient[globalSessionToken].includes(clientName));
+    if (!sessionClient[globalSessionToken].includes(clientName)) {
         return false;
     }
     const authData = JSON.parse(CryptoJS.AES.decrypt(ssoCode, SECRET_KEY).toString(CryptoJS.enc.Utf8));
@@ -70,20 +73,29 @@ const generateAccessToken = (authCode, clientId, clientSecret) => {
         issuer: "sso-auth-server",
     });
 };
-const storeAppInCache = (redirectUrl, userId, token) => {
+const storeClientInCache = (redirectUrl, userId, token) => {
     const originUrl = new URL(redirectUrl).origin;
-    if (sessionApp[userId] === undefined) {
-        sessionApp[userId] = {
-            [originName[originUrl]]: true,
-        };
+    if (sessionClient[userId] === undefined) {
+        sessionClient[userId] = [originName[originUrl]];
+        // (sessionClient as any)[userId] = {
+        //   [(originName as any)[originUrl]]: true,
+        // };
     }
     else {
-        sessionApp[userId][originName[originUrl]] = true;
+        const clients = [...sessionClient[userId]];
+        clients.push(originName[originUrl]);
+        sessionClient[userId] = clients;
+        // (sessionClient as any)[userId][(originName as any)[originUrl]] = true;
     }
-    intermediateTokenCache[token] = [
-        userId,
-        originName[originUrl],
-    ];
+    const tokenObject = {};
+    tokenObject[token] = [userId, originName[originUrl]];
+    intermediateTokenCache = Object.assign(Object.assign({}, intermediateTokenCache), { [token]: [userId, originName[originUrl]] });
+    // (intermediateTokenCache as any)[token] = [
+    //   userId,
+    //   (originName as any)[originUrl],
+    // ];
+    console.log(sessionClient);
+    console.log(intermediateTokenCache);
 };
 var UserRole;
 (function (UserRole) {
@@ -118,7 +130,7 @@ const checkCredential = (connection, username, password, callback) => {
 };
 module.exports = {
     sessionUser,
-    sessionApp,
+    sessionClient,
     intermediateTokenCache,
     originName,
     alloweOrigin,
@@ -126,7 +138,7 @@ module.exports = {
     checkCredential,
     authenticateClient,
     verifyAuthorizationCode,
-    storeAppInCache,
+    storeClientInCache,
     generateAccessToken,
     insertUser,
 };

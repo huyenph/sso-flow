@@ -38,7 +38,11 @@ router.get("/oauth", (req, res) => {
                 .send({ message: "You are not allow to access SSO server" });
         }
         if (req.session.user !== undefined) {
-            console.log(req.session.user);
+            // generate another authorization code
+            const code = authModule.generateAuthorizationCode(req.session.user, req.query["redirect_url"]);
+            authModule.storeClientInCache(req.query["redirect_url"], req.session.user, code);
+            // redirect to client with an authorization token
+            res.redirect(302, req.query["redirect_url"] + `?authorization_code=${code}`);
         }
         else {
             res.redirect("/oauth/authorize");
@@ -60,13 +64,12 @@ router.post("/oauth/signin", (req, res) => {
         // create global session here
         req.session.user = userType.userId;
         authModule.sessionUser[userType.userId] = userType;
-        console.log(authModule.sessionUser);
         if (redirectUrl === null) {
             return res.redirect("/");
         }
         // create authorization token
         const code = authModule.generateAuthorizationCode(clientId, redirectUrl);
-        authModule.storeAppInCache(redirectUrl, userType.userId, code);
+        authModule.storeClientInCache(redirectUrl, userType.userId, code);
         // redirect to client with an authorization token
         res.redirect(302, redirectUrl + `?authorization_code=${code}`);
     });
@@ -81,7 +84,6 @@ router.post("/oauth/token", (req, res) => {
             return res.status(400).send({ message: "Access denied" });
         }
         const token = authModule.generateAccessToken(authorization_code, client_id, client_secret);
-        console.log(`Token: ${token}`);
         return res.status(200).send({
             access_token: token,
             token_type: "JWT",
