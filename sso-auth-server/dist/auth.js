@@ -2,43 +2,48 @@
 const CryptoJS = require("crypto-js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
-const AUTH_HEADER = "Authorization";
-const BEARER_AUTH = "Bearer";
+const cert = require("./key/index");
 const sessionUser = {};
 const sessionApp = {};
-const intrmTokenCache = {};
-const appName = {
+const intermediateTokenCache = {};
+const originName = {
     "http://localhost:3000": "client_1",
-    "http://localhost:3003": "client_2",
+    "http://localhost:3002": "client_2",
 };
-const allowUrl = {
+const alloweOrigin = {
     "http://localhost:3000": true,
-    "http://localhost:3003": false,
+    "http://localhost:3002": false,
 };
-const appTokenDB = "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL";
+const appTokenDB = {
+    client_1: "l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
+    client_2: "1g0jJwGmRQhJwvwNOrY4i90kD0m",
+};
+const SECRET_KEY = "secretKey";
 const generateAuthorizationCode = (clientId, redirectUrl) => {
     return CryptoJS.AES.encrypt(JSON.stringify({
         client_id: clientId,
         redirect_url: redirectUrl,
         exp: Date.now() + 600,
-    }), "secretKey").toString();
+    }), SECRET_KEY).toString();
 };
 const authenticateClient = (clientId, clientSecret) => {
     // check credential here
     return true;
 };
 const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) => {
-    console.log(bearerCode.replace("Bearer ", ""));
-    if (!authCode) {
+    const ssoCode = authCode.replace(/\s/g, "+");
+    const clientName = intermediateTokenCache[ssoCode][1];
+    const globalSessionToken = intermediateTokenCache[ssoCode][0];
+    if (bearerCode.replace("Bearer ", "") !== appTokenDB[clientName]) {
         return false;
     }
-    const ssoCode = authCode.replace(/\s/g, "+");
-    const clientName = intrmTokenCache[ssoCode][1];
-    const globalSessionToken = intrmTokenCache[ssoCode][0];
+    if (authCode === undefined) {
+        return false;
+    }
     if (sessionApp[globalSessionToken][clientName] !== true) {
         return false;
     }
-    const authData = JSON.parse(CryptoJS.AES.decrypt(ssoCode, "secretKey").toString(CryptoJS.enc.Utf8));
+    const authData = JSON.parse(CryptoJS.AES.decrypt(ssoCode, SECRET_KEY).toString(CryptoJS.enc.Utf8));
     if (authData) {
         const { client_id, redirect_url, exp } = authData;
         if (clientId !== client_id || redirect_url !== redirectUrl) {
@@ -51,27 +56,35 @@ const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) =>
     }
     return false;
 };
-const generateAccessToken = (clientId, clientSecret) => {
+const generateAccessToken = (authCode, clientId, clientSecret) => {
+    const ssoCode = authCode.replace(/\s/g, "+");
+    const globalSessionToken = intermediateTokenCache[ssoCode][0];
+    const userInfo = sessionUser[globalSessionToken];
     return jwt.sign({
         client_id: clientId,
         client_secret: clientSecret,
-        issuer: "auth-server",
-        exp: Date.now() + 1800,
-    }, "secretKey");
+        user: userInfo,
+    }, cert, {
+        algorithm: "RS256",
+        expiresIn: "1h",
+        issuer: "sso-auth-server",
+    });
 };
 const storeAppInCache = (redirectUrl, userId, token) => {
     const originUrl = new URL(redirectUrl).origin;
     if (sessionApp[userId] === undefined) {
         sessionApp[userId] = {
-            [appName[originUrl]]: true,
+            [originName[originUrl]]: true,
         };
     }
     else {
-        sessionApp[userId][appName[originUrl]] = true;
+        sessionApp[userId][originName[originUrl]] = true;
     }
-    intrmTokenCache[token] = [userId, appName[originUrl]];
+    intermediateTokenCache[token] = [
+        userId,
+        originName[originUrl],
+    ];
 };
-const getAuthHeader = () => { };
 var UserRole;
 (function (UserRole) {
     UserRole[UserRole["Admin"] = 0] = "Admin";
@@ -106,9 +119,9 @@ const checkCredential = (connection, username, password, callback) => {
 module.exports = {
     sessionUser,
     sessionApp,
-    intrmTokenCache,
-    appName,
-    allowUrl,
+    intermediateTokenCache,
+    originName,
+    alloweOrigin,
     generateAuthorizationCode,
     checkCredential,
     authenticateClient,

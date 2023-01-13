@@ -39,12 +39,11 @@ const connection = mysql.createConnection({
 router.get("/oauth", (req: typeof Request, res: typeof Response) => {
   const originUrl = new URL(req.query["redirect_url"]).origin;
   if (originUrl) {
-    if (!authModule.allowUrl[originUrl]) {
+    if (!authModule.alloweOrigin[originUrl]) {
       return res
         .status(400)
         .send({ message: "You are not allow to access SSO server" });
     }
-    console.log(req.session.user);
     if (req.session.user !== undefined) {
       console.log(req.session.user);
     } else {
@@ -72,8 +71,8 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
     (userType: UserType) => {
       // create global session here
       req.session.user = userType.userId;
-      console.log(req.session);
-      (authModule.sessionUser as any)[userType.userId] = userType.email;
+      (authModule.sessionUser as any)[userType.userId] = userType;
+      console.log(authModule.sessionUser);
       if (redirectUrl === null) {
         return res.redirect("/");
       }
@@ -108,10 +107,14 @@ router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
       return res.status(400).send({ message: "Access denied" });
     }
 
-    const token = authModule.generateAccessToken(client_id, client_secret);
+    const token = authModule.generateAccessToken(
+      authorization_code,
+      client_id,
+      client_secret
+    );
     return res.status(200).send({
       access_token: token,
-      token_type: "Bearer",
+      token_type: "JWT",
     });
   } else {
     return res.status(400).send({ message: "Invalid request" });

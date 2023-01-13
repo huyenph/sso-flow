@@ -1,6 +1,7 @@
 const CryptoJS = require("crypto-js");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const cert = require("./key/index");
 
 const sessionUser = <object>{};
 const sessionApp = <object>{};
@@ -77,15 +78,28 @@ const verifyAuthorizationCode = (
   return false;
 };
 
-const generateAccessToken = (clientId: string, clientSecret: string) => {
+const generateAccessToken = (
+  authCode: string,
+  clientId: string,
+  clientSecret: string
+) => {
+  const ssoCode: string = authCode.replace(/\s/g, "+");
+  const globalSessionToken: string = (intermediateTokenCache as any)[
+    ssoCode
+  ][0];
+  const userInfo: UserType = (sessionUser as any)[globalSessionToken];
   return jwt.sign(
     {
       client_id: clientId,
       client_secret: clientSecret,
-      issuer: "auth-server",
-      exp: Date.now() + 1800,
+      user: userInfo,
     },
-    SECRET_KEY
+    cert,
+    {
+      algorithm: "RS256",
+      expiresIn: "1h",
+      issuer: "sso-auth-server",
+    }
   );
 };
 
@@ -107,8 +121,6 @@ const storeAppInCache = (
     (originName as any)[originUrl],
   ];
 };
-
-const getAuthHeader = () => {};
 
 enum UserRole {
   "Admin",
