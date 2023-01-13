@@ -42,7 +42,6 @@ const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) =>
     if (authCode === undefined) {
         return false;
     }
-    console.log(sessionClient[globalSessionToken].includes(clientName));
     if (!sessionClient[globalSessionToken].includes(clientName)) {
         return false;
     }
@@ -77,25 +76,13 @@ const storeClientInCache = (redirectUrl, userId, token) => {
     const originUrl = new URL(redirectUrl).origin;
     if (sessionClient[userId] === undefined) {
         sessionClient[userId] = [originName[originUrl]];
-        // (sessionClient as any)[userId] = {
-        //   [(originName as any)[originUrl]]: true,
-        // };
     }
     else {
         const clients = [...sessionClient[userId]];
         clients.push(originName[originUrl]);
         sessionClient[userId] = clients;
-        // (sessionClient as any)[userId][(originName as any)[originUrl]] = true;
     }
-    const tokenObject = {};
-    tokenObject[token] = [userId, originName[originUrl]];
     intermediateTokenCache = Object.assign(Object.assign({}, intermediateTokenCache), { [token]: [userId, originName[originUrl]] });
-    // (intermediateTokenCache as any)[token] = [
-    //   userId,
-    //   (originName as any)[originUrl],
-    // ];
-    console.log(sessionClient);
-    console.log(intermediateTokenCache);
 };
 var UserRole;
 (function (UserRole) {

@@ -38,7 +38,6 @@ router.get("/oauth", (req, res) => {
                 .send({ message: "You are not allow to access SSO server" });
         }
         if (req.session.user !== undefined) {
-            // generate another authorization code
             const code = authModule.generateAuthorizationCode(req.session.user, req.query["redirect_url"]);
             authModule.storeClientInCache(req.query["redirect_url"], req.session.user, code);
             // redirect to client with an authorization token
