@@ -16,8 +16,8 @@ export default function Login() {
       </Head>
       <main className={styles.main}>
         <h3>
-          <a href="http://localhost:3001/oauth?response_type=code&client_id=CLIENT_ID&redirect_url=http://localhost:3000/callback">
-            Sign in with Authorization Server
+          <a href="http://localhost:3001/sso?response_type=code&client_id=CLIENT_ID&redirect_url=http://localhost:3000/callback">
+            Sign in with Authorization Server Login
           </a>
         </h3>
       </main>

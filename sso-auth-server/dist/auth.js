@@ -34,8 +34,6 @@ const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) =>
     const ssoCode = authCode.replace(/\s/g, "+");
     const clientName = intermediateTokenCache[ssoCode][1];
     const globalSessionToken = intermediateTokenCache[ssoCode][0];
-    // console.log(bearerCode);
-    // console.log((appTokenDB as any)[clientName]);
     if (bearerCode.replace("Bearer ", "") !== appTokenDB[clientName]) {
         return false;
     }

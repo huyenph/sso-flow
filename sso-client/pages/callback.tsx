@@ -11,7 +11,7 @@ const Callback = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const authCode = router.query["authorization_code"];
+    const authCode = router.query["authorizationCode"];
     if (authCode) {
       const requestOptions = {
         method: "POST",
@@ -20,14 +20,14 @@ const Callback = () => {
           Authorization: "Bearer l1Q7zkOL59cRqWBkQ12ZiGVW2DBL",
         },
         body: JSON.stringify({
-          grant_type: "authorization_code",
-          authorization_code: authCode,
-          client_id: "CLIENT_ID",
-          client_secret: "CLIENT_SECRET",
-          redirect_url: "http://localhost:3000/callback",
+          grantType: "authorization_code",
+          authorizationCode: authCode,
+          clientID: "client_id",
+          clientSecret: "CLIENT_SECRET",
+          serviceURL: "http://localhost:3000/callback",
         }),
       };
-      fetch("http://localhost:3001/oauth/token", requestOptions).then(
+      fetch("http://localhost:3001/sso/token", requestOptions).then(
         (res: Response) => {
           if (res.status === 200) {
             // store access token in cookie

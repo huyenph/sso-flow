@@ -1,4 +1,4 @@
-CREATE TABLE Users (
+CREATE TABLE users (
     userID VARCHAR(100),
     username VARCHAR(50),
     password CHAR(60),
