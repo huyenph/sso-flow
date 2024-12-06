@@ -92,6 +92,6 @@ router.post("/oauth/token", (req, res) => {
         return res.status(400).send({ message: "Invalid request" });
     }
 });
-app.listen(3001, () => {
-    console.log("Server listening on PORT 3001");
+app.listen(8000, () => {
+    console.log("Server listening on PORT 8000");
 });

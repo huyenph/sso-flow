@@ -27,7 +27,7 @@ const Callback = () => {
           serviceURL: "http://localhost:3000/callback",
         }),
       };
-      fetch("http://localhost:3001/sso/token", requestOptions).then(
+      fetch("http://localhost:8000/oauth/token", requestOptions).then(
         (res: Response) => {
           if (res.status === 200) {
             // store access token in cookie

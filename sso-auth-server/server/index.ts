@@ -133,6 +133,6 @@ router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
   }
 });
 
-app.listen(3001, () => {
-  console.log("Server listening on PORT 3001");
+app.listen(8000, () => {
+  console.log("Server listening on PORT 8000");
 });

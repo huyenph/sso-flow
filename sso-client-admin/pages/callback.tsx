@@ -27,7 +27,7 @@ const Callback = () => {
           redirect_url: "http://localhost:3002/callback",
         }),
       };
-      fetch("http://localhost:3001/oauth/token", requestOptions).then(
+      fetch("http://localhost:8000/oauth/token", requestOptions).then(
         (res: Response) => {
           if (res.status === 200) {
             // store access token in cookie

@@ -97,19 +97,30 @@ const insertUser = (userID, username, password, email, role) => {
     });
 };
 const checkCredential = (connection, username, password, callback) => {
-    connection.execute(`SELECT * FROM Users WHERE username = "${username}"`, (err, results, fields) => {
+    connection.execute(`SELECT * FROM Users WHERE username = "${username}" AND password = "${password}"`, (err, results, fields) => {
         if (results.length > 0) {
-            bcrypt.compare(password, results[0]["password"], (err, result) => {
-                if (result) {
-                    const user = {
-                        userId: results[0]["userID"],
-                        username: results[0]["username"],
-                        email: results[0]["email"],
-                        role: results[0]["role"],
-                    };
-                    callback(user);
-                }
-            });
+            const user = {
+                userId: results[0]["userID"],
+                username: results[0]["username"],
+                email: results[0]["email"],
+                role: results[0]["role"],
+            };
+            callback(user);
+            // bcrypt.compare(
+            //   password,
+            //   results[0]["password"],
+            //   (err: any, result: any) => {
+            //     if (result) {
+            //       const user: UserType = {
+            //         userId: results[0]["userID"],
+            //         username: results[0]["username"],
+            //         email: results[0]["email"],
+            //         role: results[0]["role"],
+            //       };
+            //       callback(user);
+            //     }
+            //   }
+            // );
         }
     });
 };

@@ -16,8 +16,8 @@ export default function Home() {
       </Head>
       <main className={styles.main}>
         <h3>
-          <a href="http://localhost:3001/oauth?response_type=code&client_id=client_id&redirect_url=http://localhost:3002/callback">
-            Sign in with Authorization Server
+          <a href="http://localhost:8000/oauth?response_type=code&client_id=client_id&redirect_url=http://localhost:3002/callback">
+            Client Admin - Sign in with Authorization Server
           </a>
         </h3>
       </main>
