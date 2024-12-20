@@ -82,9 +82,11 @@ const storeClientInCache = (redirectUrl, userId, token) => {
         clients.push(originName[originUrl]);
         sessionClient[userId] = clients;
     }
-    console.log(`sessionClient: ${sessionClient}`);
+    console.log("sessionClient");
+    console.log(sessionClient);
     intermediateTokenCache = Object.assign(Object.assign({}, intermediateTokenCache), { [token]: [userId, originName[originUrl]] });
-    console.log(`intermediateTokenCache: ${intermediateTokenCache}`);
+    console.log("intermediateTokenCache");
+    console.log(intermediateTokenCache);
 };
 var UserRole;
 (function (UserRole) {

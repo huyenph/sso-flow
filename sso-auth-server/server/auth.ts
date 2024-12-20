@@ -118,12 +118,14 @@ const storeClientInCache = (
     clients.push((originName as any)[originUrl]);
     (sessionClient as any)[userId] = clients;
   }
-  console.log(`sessionClient: ${sessionClient}`);
+  console.log("sessionClient");
+  console.log(sessionClient);
   intermediateTokenCache = {
     ...intermediateTokenCache,
     [token]: [userId, (originName as any)[originUrl]],
   };
-  console.log(`intermediateTokenCache: ${intermediateTokenCache}`);
+  console.log("intermediateTokenCache");
+  console.log(intermediateTokenCache);
 };
 
 enum UserRole {
