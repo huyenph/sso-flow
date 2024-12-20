@@ -31,6 +31,7 @@ const authenticateClient = (clientId, clientSecret) => {
     return true;
 };
 const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) => {
+    console.log(authCode);
     const ssoCode = authCode.replace(/\s/g, "+");
     const clientName = intermediateTokenCache[ssoCode][1];
     const globalSessionToken = intermediateTokenCache[ssoCode][0];
@@ -44,6 +45,7 @@ const verifyAuthorizationCode = (bearerCode, authCode, clientId, redirectUrl) =>
         return false;
     }
     const authData = JSON.parse(CryptoJS.AES.decrypt(ssoCode, SECRET_KEY).toString(CryptoJS.enc.Utf8));
+    console.log(authData);
     if (authData) {
         const { client_id, redirect_url, exp } = authData;
         if (clientId !== client_id || redirect_url !== redirectUrl) {
@@ -80,7 +82,9 @@ const storeClientInCache = (redirectUrl, userId, token) => {
         clients.push(originName[originUrl]);
         sessionClient[userId] = clients;
     }
+    console.log(`sessionClient: ${sessionClient}`);
     intermediateTokenCache = Object.assign(Object.assign({}, intermediateTokenCache), { [token]: [userId, originName[originUrl]] });
+    console.log(`intermediateTokenCache: ${intermediateTokenCache}`);
 };
 var UserRole;
 (function (UserRole) {

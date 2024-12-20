@@ -46,7 +46,7 @@ router.get("/oauth", (req: typeof Request, res: typeof Response) => {
     }
     if (req.session.user !== undefined) {
       const code = authModule.generateAuthorizationCode(
-        req.session.user,
+        req.query["client_id"],
         req.query["redirect_url"]
       );
       authModule.storeClientInCache(
@@ -60,7 +60,9 @@ router.get("/oauth", (req: typeof Request, res: typeof Response) => {
         req.query["redirect_url"] + `?authorization_code=${code}`
       );
     } else {
-      res.redirect("/oauth/authorize");
+      res.redirect(
+        `/oauth/authorize?client_id=${req.query["client_id"]}&redirect_url=${req.query["redirect_url"]}`
+      );
     }
   } else {
     return res.status(400).send({ message: "Invalid client" });
@@ -101,28 +103,27 @@ router.post("/oauth/signin", (req: typeof Request, res: typeof Response) => {
 
 router.post("/oauth/token", (req: typeof Request, res: typeof Response) => {
   if (req.body) {
-    const { authorization_code, client_id, client_secret, redirect_url } =
-      req.body;
+    const { authorizationCode, clientID, clientSecret, redirectUrl } = req.body;
 
-    if (!authModule.authenticateClient(client_id, client_secret)) {
+    if (!authModule.authenticateClient(clientID, clientSecret)) {
       return res.status(400).send({ message: "Invalid client" });
     }
 
     if (
       !authModule.verifyAuthorizationCode(
         req.get("Authorization"),
-        authorization_code,
-        client_id,
-        redirect_url
+        authorizationCode,
+        clientID,
+        redirectUrl
       )
     ) {
       return res.status(400).send({ message: "Access denied" });
     }
 
     const token = authModule.generateAccessToken(
-      authorization_code,
-      client_id,
-      client_secret
+      authorizationCode,
+      clientID,
+      clientSecret
     );
     return res.status(200).send({
       access_token: token,

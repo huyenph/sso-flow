@@ -12,13 +12,24 @@
     <p>Username:</p>
     <input type="text" name="username" required>
     <p>Password:</p>
-    <input type="Password" name="password" required>
-    <input type="hidden" name="client_id" value="CLIENT_ID">
-    <input type="hidden" name="redirect_url" value="http://localhost:3000/callback">
+    <input type="password" name="password" required>
+    <input type="hidden" id="client_id" name="client_id" value="">
+    <input type="hidden" id="redirect_url" name="redirect_url" value="">
     <p>
       <input type="submit" value="Sign in">
     </p>
   </form>
+
+  <script>
+    // Extract query parameters from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const clientId = urlParams.get('client_id');
+    const redirectUrl = urlParams.get('redirect_url');
+
+    // Populate hidden fields
+    document.getElementById('client_id').value = clientId || '';
+    document.getElementById('redirect_url').value = redirectUrl || '';
+  </script>
 </body>
 
 </html>

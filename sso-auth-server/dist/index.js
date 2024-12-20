@@ -38,13 +38,13 @@ router.get("/oauth", (req, res) => {
                 .send({ message: "You are not allow to access SSO server" });
         }
         if (req.session.user !== undefined) {
-            const code = authModule.generateAuthorizationCode(req.session.user, req.query["redirect_url"]);
+            const code = authModule.generateAuthorizationCode(req.query["client_id"], req.query["redirect_url"]);
             authModule.storeClientInCache(req.query["redirect_url"], req.session.user, code);
             // redirect to client with an authorization token
             res.redirect(302, req.query["redirect_url"] + `?authorization_code=${code}`);
         }
         else {
-            res.redirect("/oauth/authorize");
+            res.redirect(`/oauth/authorize?client_id=${req.query["client_id"]}&redirect_url=${req.query["redirect_url"]}`);
         }
     }
     else {
@@ -75,14 +75,14 @@ router.post("/oauth/signin", (req, res) => {
 });
 router.post("/oauth/token", (req, res) => {
     if (req.body) {
-        const { authorization_code, client_id, client_secret, redirect_url } = req.body;
-        if (!authModule.authenticateClient(client_id, client_secret)) {
+        const { authorizationCode, clientID, clientSecret, redirectUrl } = req.body;
+        if (!authModule.authenticateClient(clientID, clientSecret)) {
             return res.status(400).send({ message: "Invalid client" });
         }
-        if (!authModule.verifyAuthorizationCode(req.get("Authorization"), authorization_code, client_id, redirect_url)) {
+        if (!authModule.verifyAuthorizationCode(req.get("Authorization"), authorizationCode, clientID, redirectUrl)) {
             return res.status(400).send({ message: "Access denied" });
         }
-        const token = authModule.generateAccessToken(authorization_code, client_id, client_secret);
+        const token = authModule.generateAccessToken(authorizationCode, clientID, clientSecret);
         return res.status(200).send({
             access_token: token,
             token_type: "JWT",

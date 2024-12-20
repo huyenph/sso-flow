@@ -46,6 +46,7 @@ const verifyAuthorizationCode = (
   clientId: string,
   redirectUrl: string
 ) => {
+  console.log(authCode);
   const ssoCode = authCode.replace(/\s/g, "+");
   const clientName = (intermediateTokenCache as any)[ssoCode][1];
   const globalSessionToken = (intermediateTokenCache as any)[ssoCode][0];
@@ -65,6 +66,7 @@ const verifyAuthorizationCode = (
   const authData = JSON.parse(
     CryptoJS.AES.decrypt(ssoCode, SECRET_KEY).toString(CryptoJS.enc.Utf8)
   );
+  console.log(authData);
   if (authData) {
     const { client_id, redirect_url, exp } = authData;
     if (clientId !== client_id || redirect_url !== redirectUrl) {
@@ -116,10 +118,12 @@ const storeClientInCache = (
     clients.push((originName as any)[originUrl]);
     (sessionClient as any)[userId] = clients;
   }
+  console.log(`sessionClient: ${sessionClient}`);
   intermediateTokenCache = {
     ...intermediateTokenCache,
     [token]: [userId, (originName as any)[originUrl]],
   };
+  console.log(`intermediateTokenCache: ${intermediateTokenCache}`);
 };
 
 enum UserRole {
