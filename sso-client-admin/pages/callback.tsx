@@ -20,11 +20,11 @@ const Callback = () => {
           Authorization: "Bearer 1g0jJwGmRQhJwvwNOrY4i90kD0m",
         },
         body: JSON.stringify({
-          grant_type: "authorization_code",
-          authorization_code: authCode,
-          client_id: "CLIENT_ID",
-          client_secret: "CLIENT_SECRET",
-          redirect_url: "http://localhost:3002/callback",
+          grantType: "authorization_code",
+          authorizationCode: authCode,
+          clientID: "client5678",
+          clientSecret: "CLIENT_SECRET_1",
+          redirectUrl: "http://localhost:3002/callback",
         }),
       };
       fetch("http://localhost:8000/oauth/token", requestOptions).then(
