@@ -11,7 +11,8 @@ const Callback = () => {
   const router = useRouter();
 
   useEffect(() => {
-    const authCode = router.query["authorizationCode"];
+    console.log(router.query);
+    const authCode = router.query["authorization_code"];
     if (authCode) {
       const requestOptions = {
         method: "POST",
@@ -22,9 +23,9 @@ const Callback = () => {
         body: JSON.stringify({
           grantType: "authorization_code",
           authorizationCode: authCode,
-          clientID: "client_id",
+          clientID: "client1234",
           clientSecret: "CLIENT_SECRET",
-          serviceURL: "http://localhost:3000/callback",
+          redirectUrl: "http://localhost:3000/callback",
         }),
       };
       fetch("http://localhost:8000/oauth/token", requestOptions).then(
